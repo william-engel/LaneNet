@@ -24,7 +24,7 @@ def create_masks(label_data, image_shape):
     label_data = '{"lanes": [[],[],...], "h_samples": [], "raw_file": "image000.jpg"}'
     label_data is a dict in string format
     '''
-    im_height, im_width, _ = image_shape
+    im_height, im_width = image_shape
 
     label_data = label_data.numpy().decode('utf-8') # to str
 
