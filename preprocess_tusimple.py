@@ -44,25 +44,25 @@ def create_masks(label_data, image_shape):
         cv2.polylines(instance_mask, [coordinates], isClosed = False, color = [index + 1], thickness = 15)
     return binary_mask, instance_mask
 
-def preprocess_data(json_label, image_dir, input_shape = (480,640)):
+def preprocess_data(json_label, image_dir, input_shape = (480,640), original_shape = (720,1280)):
     # READ IMAGE
     [image,] = tf.py_function(func = read_image, 
                               inp  = [image_dir, json_label], 
                               Tout = [tf.float32])
     
     # CREATE MASK
-    [binary_mask, instance_mask] = tf.py_function(func = create_masks, 
-                                                  inp  = [json_label, image.shape], 
-                                                  Tout = [tf.int32, tf.int32])
+    binary_mask, instance_mask = tf.py_function(func = create_masks, 
+                                                inp  = [json_label, original_shape], 
+                                                Tout = [tf.int32, tf.int32])
+
+    binary_mask.set_shape(original_shape + (1,))
+    instance_mask.set_shape(original_shape + (1,))
+    image.set_shape(original_shape + (3,))
 
     # RESIZE
     binary_mask = tf.image.resize(binary_mask, input_shape, method = 'nearest')
     instance_mask = tf.image.resize(instance_mask, input_shape, method = 'nearest')
     image = tf.image.resize(image, input_shape, method = 'nearest')
-
-    binary_mask.set_shape(input_shape + (1,))
-    instance_mask.set_shape(input_shape + (1,))
-    image.set_shape(input_shape + (3,))
 
     # NORMALIZE
     image = image / 255.0
