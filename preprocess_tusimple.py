@@ -83,3 +83,15 @@ def remove_labels(image, labels, to_remove = None):
         for label in to_remove:
             labels.pop(label, None)
         return image, labels
+
+def json_to_stringlist(label_paths):
+  '''Takes a list of .json files.'''
+  for path in label_paths: assert(os.path.exists(path)), f'Path not found: {path}'
+
+  label_data = []
+  for path in label_paths:
+    with open(path) as json_file:
+      for line in json_file:
+        label_data.append(line)
+
+  return label_data
