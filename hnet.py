@@ -51,5 +51,5 @@ def create_hnet(input_shape, target_shape = (64, 128)):
 
   output = Dense(units = 6, name = 'output_dense', bias_initializer = CustomIdentity(), kernel_initializer = Zeros())(x)
 
-  model = Model(inputs = [input], outputs = [output])
+  model = Model(inputs = [input], outputs = [output], name = 'hnet')
   return model
