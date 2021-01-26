@@ -89,7 +89,7 @@ def hnet_loss(json_labels, H_matrices):
         xn, yn = tf_apply_H(x, y, H)
 
         # polyfit
-        xn = tf.numpy_function(func = lambda x,y: np.polyval(np.polyfit(y, x, 3), y),
+        [xn,] = tf.numpy_function(func = lambda x,y: np.polyval(np.polyfit(y, x, 3), y),
                               inp  = [xn, yn],
                               Tout = [tf.float32])
         xn.set_shape([None,])
