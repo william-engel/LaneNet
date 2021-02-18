@@ -99,88 +99,88 @@ def json_to_stringlist(label_paths):
   return label_data
 
 
-  def fit_lanes2masks(masks, labels, input_shape, original_shape, H = None, degree = 3):
+def fit_lanes2masks(masks, labels, input_shape, original_shape, H = None, degree = 3):
 
-  width_inp2orig  = original_shape[1] / input_shape[1] # width scale factor
-  height_inp2orig = original_shape[0] / input_shape[0] # height scale factor
+    width_inp2orig  = original_shape[1] / input_shape[1] # width scale factor
+    height_inp2orig = original_shape[0] / input_shape[0] # height scale factor
 
-  '''
-  masks: (B,W,H,1)
-  H: (B,3,3)
-  returns:
-  labels_true[{'lanes':[[]], ..}, {}, ..]
-  labels_pred[{'lanes':[[]], ..}, {}, ..]
-  '''
-  labels_pred = []
-  labels_true = []
+    '''
+    masks: (B,W,H,1)
+    H: (B,3,3)
+    returns:
+    labels_true[{'lanes':[[]], ..}, {}, ..]
+    labels_pred[{'lanes':[[]], ..}, {}, ..]
+    '''
+    labels_pred = []
+    labels_true = []
 
-  if H is None: H = np.eye(N = 3)
+    if H is None: H = np.eye(N = 3)
 
-  for mask, label in zip(masks, labels):
-    label = label.numpy().decode('utf-8')
-    label = json.loads(label)
+    for mask, label in zip(masks, labels):
+        label = label.numpy().decode('utf-8')
+        label = json.loads(label)
 
-    h = np.array(label['h_samples']) 
+        h = np.array(label['h_samples']) 
 
-    lanes = []
-    for id in np.unique(mask):
-      if id == 0: continue
+        lanes = []
+        for id in np.unique(mask):
+            if id == 0: continue
 
-      # instance pixel coordinates
-      y, x = np.where(mask == id)
+            # instance pixel coordinates
+            y, x = np.where(mask == id)
 
-      # scale from input size to original size
-      y = y * height_inp2orig
-      x = x * width_inp2orig
+            # scale from input size to original size
+            y = y * height_inp2orig
+            x = x * width_inp2orig
 
-      # mask all h_samples hat are out of range
-      out_range = np.any([h < np.min(y), h > np.max(y)], axis = 0)
+            # mask all h_samples hat are out of range
+            out_range = np.any([h < np.min(y), h > np.max(y)], axis = 0)
 
-      # apply homography
-      pts = np.stack([x, y], axis = 1) # Nx2
-      pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
-      pts = np.matmul(H, pts)  # 3xN
-      xn, yn = pts[:-1] / pts[-1] # N
+            # apply homography
+            pts = np.stack([x, y], axis = 1) # Nx2
+            pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
+            pts = np.matmul(H, pts)  # 3xN
+            xn, yn = pts[:-1] / pts[-1] # N
 
-      # apply homography
-      pts = np.pad(h[...,None], [[0,0],[1,1]], constant_values = 1).T # 3xN
-      pts = np.matmul(H, pts)  # 3xN
-      hn = pts[1] / pts[-1] # N
+            # apply homography
+            pts = np.pad(h[...,None], [[0,0],[1,1]], constant_values = 1).T # 3xN
+            pts = np.matmul(H, pts)  # 3xN
+            hn = pts[1] / pts[-1] # N
 
-      # fit polynomial
-      c = np.polyfit(y, x, degree)
-      p = np.poly1d(c)
+            # fit polynomial
+            c = np.polyfit(y, x, degree)
+            p = np.poly1d(c)
 
-      # calculate new x coordinates
-      xn = np.polyval(p, h)
+            # calculate new x coordinates
+            xn = np.polyval(p, h)
 
-      # reverse homography
-      pts = np.stack([xn, hn], axis = 1) # Nx2
-      pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
-      pts = np.matmul(np.linalg.inv(H), pts)
-      xn = pts[0] / pts[-1] # N
+            # reverse homography
+            pts = np.stack([xn, hn], axis = 1) # Nx2
+            pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
+            pts = np.matmul(np.linalg.inv(H), pts)
+            xn = pts[0] / pts[-1] # N
 
-      # remove coordinates that are out of range
-      xn[out_range] = -2
+            # remove coordinates that are out of range
+            xn[out_range] = -2
 
-      lanes.append(xn)
+            lanes.append(xn)
 
-    label_pred = label.copy()
-    label_pred['lanes'] = lanes
+        label_pred = label.copy()
+        label_pred['lanes'] = lanes
 
-    labels_pred.append(label_pred)
-    labels_true.append(label)
+        labels_pred.append(label_pred)
+        labels_true.append(label)
 
-  return labels_true, labels_pred
+    return labels_true, labels_pred
 
 
 def plot_lanes_on_image(image, lanes, h_samples):
-  for lane in lanes:
-    coor = np.vstack([lane, h_samples]).T.astype('int32') 
-    coor = coor[coor[:,0] != -2]
-    cv2.polylines(image, pts = [coor], isClosed = False, color = [0,0,255], thickness = 4)
+    for lane in lanes:
+        coor = np.vstack([lane, h_samples]).T.astype('int32') 
+        coor = coor[coor[:,0] != -2]
+        cv2.polylines(image, pts = [coor], isClosed = False, color = [0,0,255], thickness = 4)
 
-  return image / 255.0
+    return image / 255.0
 
 def plot_labels_on_images(labels, images, input_shape, original_shape,  H_matrices = None):
     '''images: (B,W,H,3) [0.0,1.0]'''
@@ -190,42 +190,42 @@ def plot_labels_on_images(labels, images, input_shape, original_shape,  H_matric
     B, Height, Width, _ = images.shape
 
     if H_matrices is None:
-      H_matrices = np.repeat(np.eye(3)[None,...], B, axis = 0)
+        H_matrices = np.repeat(np.eye(3)[None,...], B, axis = 0)
 
     images_with_lanes = []
     for image, label, H in zip(images, labels, H_matrices):
-      if isinstance(label, str): label = json.loads(label)
+        if isinstance(label, str): label = json.loads(label)
 
-      lanes       = np.array(label['lanes'])
-      h_samples   = np.array(label['h_samples']) * height_orig2inp # scale y-coordinates
-      lanes[lanes != -2] =  lanes[lanes != -2] * width_orig2inp    # scale x-coordinates
+        lanes       = np.array(label['lanes'])
+        h_samples   = np.array(label['h_samples']) * height_orig2inp # scale y-coordinates
+        lanes[lanes != -2] =  lanes[lanes != -2] * width_orig2inp    # scale x-coordinates
 
-      image = np.array(image * 255.0).astype('uint8')
-      lanes, h_samples = apply_homography(lanes, h_samples, H)
-      image = cv2.warpPerspective(image, H, (Width, Height))
+        image = np.array(image * 255.0).astype('uint8')
+        lanes, h_samples = apply_homography(lanes, h_samples, H)
+        image = cv2.warpPerspective(image, H, (Width, Height))
 
 
-      image = plot_lanes_on_image(image, lanes, h_samples)
+        image = plot_lanes_on_image(image, lanes, h_samples)
 
-      images_with_lanes.append(image)
+        images_with_lanes.append(image)
 
     return images_with_lanes
 
 def apply_homography(lanes, h_samples, H):
-  '''
-  lanes: (N,M)
-  h_samples: (M,)
-  H: (3,3)
-  '''
-  lanes_ = []
-  for lane in lanes:
-    pts = np.stack([lane, h_samples], axis = 1) # Nx2
-    pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
-    pts = np.matmul(H, pts)  # 3xN
-    xn, yn = pts[:-1] / pts[-1] # N
-    xn[lane == -2] = -2
-    lanes_ += [xn.astype('int')]
-  
-  h_samples_ = yn.astype('int')
+    '''
+    lanes: (N,M)
+    h_samples: (M,)
+    H: (3,3)
+    '''
+    lanes_ = []
+    for lane in lanes:
+        pts = np.stack([lane, h_samples], axis = 1) # Nx2
+        pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
+        pts = np.matmul(H, pts)  # 3xN
+        xn, yn = pts[:-1] / pts[-1] # N
+        xn[lane == -2] = -2
+        lanes_ += [xn.astype('int')]
+    
+    h_samples_ = yn.astype('int')
 
-  return lanes_, h_samples_
+    return lanes_, h_samples_
