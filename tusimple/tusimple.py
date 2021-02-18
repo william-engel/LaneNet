@@ -54,7 +54,7 @@ def preprocess_data(json_label, image_dir, input_shape = (480,640), num_classes 
     
     # CREATE MASK
     binary_mask, instance_mask = tf.py_function(func = create_masks, 
-                                                inp  = [json_label, original_shape], 
+                                                inp  = [json_label], 
                                                 Tout = [tf.int32, tf.int32])
 
     binary_mask.set_shape([None, None, 1])
@@ -173,6 +173,24 @@ def fit_lanes2masks(masks, labels, input_shape, original_shape, H = None, degree
 
     return labels_true, labels_pred
 
+def apply_homography(lanes, h_samples, H):
+    '''
+    lanes: (N,M)
+    h_samples: (M,)
+    H: (3,3)
+    '''
+    lanes_ = []
+    for lane in lanes:
+        pts = np.stack([lane, h_samples], axis = 1) # Nx2
+        pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
+        pts = np.matmul(H, pts)  # 3xN
+        xn, yn = pts[:-1] / pts[-1] # N
+        xn[lane == -2] = -2
+        lanes_ += [xn.astype('int')]
+    
+    h_samples_ = yn.astype('int')
+
+    return lanes_, h_samples_
 
 def plot_lanes_on_image(image, lanes, h_samples):
     for lane in lanes:
@@ -211,21 +229,3 @@ def plot_labels_on_images(labels, images, input_shape, original_shape,  H_matric
 
     return images_with_lanes
 
-def apply_homography(lanes, h_samples, H):
-    '''
-    lanes: (N,M)
-    h_samples: (M,)
-    H: (3,3)
-    '''
-    lanes_ = []
-    for lane in lanes:
-        pts = np.stack([lane, h_samples], axis = 1) # Nx2
-        pts = np.pad(pts, [[0,0],[0,1]], constant_values = 1).T # 3xN
-        pts = np.matmul(H, pts)  # 3xN
-        xn, yn = pts[:-1] / pts[-1] # N
-        xn[lane == -2] = -2
-        lanes_ += [xn.astype('int')]
-    
-    h_samples_ = yn.astype('int')
-
-    return lanes_, h_samples_
