@@ -19,12 +19,12 @@ def load_image(image_dir, label_data):
     image = tf.cast(image, dtype = tf.float32)
     return image
 
-def create_masks(label_data, image_shape):
+def create_masks(label_data, image):
     '''
     label_data = '{"lanes": [[],[],...], "h_samples": [], "raw_file": "image000.jpg"}'
     label_data is a dict in string format
     '''
-    im_height, im_width = image_shape
+    im_height, im_width, _ = image.shape
 
     label_data = label_data.numpy().decode('utf-8') # to str
 
@@ -54,7 +54,7 @@ def preprocess_data(json_label, image_dir, input_shape = (480,640), num_classes 
     
     # CREATE MASK
     binary_mask, instance_mask = tf.py_function(func = create_masks, 
-                                                inp  = [json_label], 
+                                                inp  = [json_label, image], 
                                                 Tout = [tf.int32, tf.int32])
 
     binary_mask.set_shape([None, None, 1])
