@@ -4,6 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.get_logger().setLevel('INFO')
 
+import time
 import numpy as np
 
 from sklearn.cluster import MeanShift, estimate_bandwidth
