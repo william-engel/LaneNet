@@ -25,7 +25,7 @@ def conv_block(input, filters, kernel_size, name):
   x = ReLU(name = name + '_relu')(x)
   return x
 
-def create_hnet(input_shape, target_shape = (64, 128)):
+def HNet(input_shape, target_shape = (64, 128)):
   TARGET_HEIGHT, TARGET_WIDTH =  target_shape
   
   input = Input(shape = input_shape)
