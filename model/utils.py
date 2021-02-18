@@ -66,7 +66,7 @@ def postprocess_predictions(seg_masks, embeddings, H_matrices = None):
     seg_masks = tf.nn.softmax(seg_masks, axis = -1)
     seg_masks = np.argmax(seg_masks, axis = -1) # (B,H,W,1)
 
-     instance_masks, total_time = create_instance_masks(embeddings, seg_masks) # (B,H,W,1)
+    instance_masks, total_time = create_instance_masks(embeddings, seg_masks) # (B,H,W,1)
 
     if H_matrices is None:
         return seg_masks, instance_masks, total_time
