@@ -14,7 +14,7 @@ def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixel
 
         embedding = embedding[binary_mask != 0] # remove backround
 
-        if bandwidth = None:
+        if bandwidth == None:
             bandwidth = estimate_bandwidth(embedding, quantile=0.2, n_samples=100)
         
         ms = MeanShift(bandwidth = bandwidth, bin_seeding = True, min_bin_freq = min_bin_freq)
@@ -46,3 +46,30 @@ def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixel
     instance_masks = np.asarray(instance_masks)
 
     return instance_masks, time_taken
+
+
+def reshape_H(H_matrices):
+    '''H_matracies (B,6)'''
+    def reshape(H):
+        indices = [0,1,2,4,5,7]
+        eye = np.eye(3).reshape(9,)
+        eye[indices] = H
+        return eye.reshape(3,3)
+    
+    H_reshaped = np.array([reshape(H) for H in H_matrices]) # (B,3,3)
+
+    return H_reshaped 
+
+
+def postprocess_predictions(seg_masks, embeddings, H_matrices = None):
+
+    seg_masks = tf.nn.softmax(seg_masks, axis = -1)
+    seg_masks = np.argmax(seg_masks, axis = -1) # (B,H,W,1)
+
+     instance_masks, total_time = create_instance_masks(embeddings, seg_masks) # (B,H,W,1)
+
+    if H_matrices is None:
+        return seg_masks, instance_masks, total_time
+    else:
+        H_matrices = reshape_H(H_matrices) # (B,3,3)
+        return seg_masks, instance_masks, H_matrices, total_time
