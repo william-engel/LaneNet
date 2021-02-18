@@ -18,7 +18,7 @@ def LaneNet(input_shape, num_classes, embedding_dim, train_seg = True, train_ins
     ### initialize multi-branch enet
     encoder          = ENet_Encoder(input_tensor = input)
     # semantic segmentation
-    seg_decoder      = ENet_Decoder(input_tensor = encoder.output, classifier_activation = None, num_classes = num_classes, name = 'seg_decoder')
+    seg_decoder      = ENet_Decoder(input_tensor = encoder.output, classifier_activation = None, num_classes = num_classes, name = 'binary_decoder')
     seg_decoder.trainable = train_seg
     # instance segmentation
     instance_decoder = ENet_Decoder(input_tensor = encoder.output, classifier_activation = None, num_classes = embedding_dim, name = 'instance_decoder')
@@ -36,7 +36,7 @@ def LaneNet(input_shape, num_classes, embedding_dim, train_seg = True, train_ins
     model = tf.keras.models.Model(inputs = [input], outputs = [seg_output, instance_output, h])
 
     # rename model outputs
-    model.output_names[0] = 'seg_mask'
+    model.output_names[0] = 'binary_mask'
     model.output_names[1] = 'instance_mask'
     model.output_names[2] = 'homography'
 
