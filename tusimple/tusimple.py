@@ -47,7 +47,7 @@ def create_masks(label_data, image):
 def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
     '''image (H,W,3), binary_mask (H,W,1), instance_mask (H,W,1)'''
     # flip left-right
-     if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
+    if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
         image = tf.image.flip_left_right(image)
         binary_mask = tf.image.flip_left_right(binary_mask)
         instance_mask = tf.image.flip_left_right(instance_mask)
