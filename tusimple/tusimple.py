@@ -52,7 +52,7 @@ def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
         binary_mask = tf.image.flip_left_right(binary_mask)
         instance_mask = tf.image.flip_left_right(instance_mask)
   
-    return images, labels
+    return image, binary_mask, instance_mask
 
 def preprocess_data(json_label, image_dir, input_shape = (480,640), num_classes = 2, is_training = True):
     # READ IMAGE
