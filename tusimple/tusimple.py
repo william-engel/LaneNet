@@ -176,7 +176,7 @@ def fit_lanes2masks(masks, labels, input_shape, original_shape, H = None, degree
             # remove coordinates that are out of range
             xn[out_range] = -2
 
-            lanes.append(xn)
+            lanes.append(xn.tolist())
 
         label_pred = label.copy()
         label_pred['lanes'] = lanes
