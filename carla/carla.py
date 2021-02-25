@@ -5,7 +5,7 @@ import tensorflow as tf
 tf.get_logger().setLevel('INFO')
 
 import numpy as np
-
+import matplotlib.image as mpimg
 
 def get_image(fpath, input_shape = None): 
 
