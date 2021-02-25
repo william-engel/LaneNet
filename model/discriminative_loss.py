@@ -1,11 +1,10 @@
 import tensorflow as tf
 
-# Source:
-# https://github.com/hq-jiang/instance-segmentation-with-discriminative-loss-tensorflow/blob/master/loss.py
-
 def  discriminative_loss(feature_dim, image_shape, delta_v, delta_d, param_var, param_dist, param_reg):
   def loss(correct_label, prediction):
-
+      ''' Iterate over a batch of prediction/label and cumulate loss
+      :return: discriminative loss and its three components
+      '''
       def cond(label, batch, out_loss, out_var, out_dist, out_reg, i):
           return tf.less(i, tf.shape(batch)[0])
 
@@ -92,9 +91,9 @@ def discriminative_loss_single(prediction, correct_label, feature_dim, label_sha
   l_var = tf.divide(l_var, counts)
   l_var = tf.reduce_sum(l_var)
   l_var = tf.divide(l_var, tf.cast(num_instances, tf.float32))
-  
+
   ### Calculate l_dist
-  
+
   # Get distance for each pair of clusters like this:
   #   mu_1 - mu_1
   #   mu_2 - mu_1
@@ -111,7 +110,7 @@ def discriminative_loss_single(prediction, correct_label, feature_dim, label_sha
   mu_band_rep = tf.reshape(mu_band_rep, (num_instances*num_instances, feature_dim))
 
   mu_diff = tf.subtract(mu_band_rep, mu_interleaved_rep)
-  
+
   # Filter out zeros from same cluster subtraction
   intermediate_tensor = tf.reduce_sum(tf.abs(mu_diff),axis=1)
   zero_vector = tf.zeros(1, dtype=tf.float32)
@@ -134,5 +133,5 @@ def discriminative_loss_single(prediction, correct_label, feature_dim, label_sha
   l_reg = param_reg * l_reg
 
   loss = param_scale*(l_var + l_dist + l_reg)
-  
+
   return loss, l_var, l_dist, l_reg
