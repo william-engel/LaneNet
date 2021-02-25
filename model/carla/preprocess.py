@@ -102,7 +102,7 @@ def tf_preprocess_data(fpath, input_shape = (360,640), num_classes = 4, is_train
 
     # DATA AUGMENTATION
     if is_training:
-        image, binary_mask, instance_mask = data_augmentation(image, binary_mask, instance_mask)
+        image, seg_mask, instance_mask = data_augmentation(image, seg_mask, instance_mask)
 
     # NORMALIZE
     image = tf.cast(image, tf.float32) / 255.0
