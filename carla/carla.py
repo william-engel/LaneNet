@@ -6,6 +6,7 @@ tf.get_logger().setLevel('INFO')
 
 import numpy as np
 import matplotlib.image as mpimg
+import json
 
 def get_image(fpath, input_shape = None): 
 
@@ -41,7 +42,11 @@ def get_seg(fpath, input_shape = None):
 
     return seg
 
-def create_masks(fpath, input_shape, label2clr, min_pixels = 40):
+def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40):
+
+    # string to dict
+    if tf.is_tensor(str_label2clr): str_label2clr = str_label2clr.numpy().decode('utf-8') 
+    label2clr = json.loads(str_label2clr)
 
     line_keys = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4', 'tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
 
@@ -84,7 +89,7 @@ def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
   
     return image, binary_mask, instance_mask
 
-def tf_preprocess_data(fpath, label2clr, input_shape = (360,640), num_classes = 4, is_training = True):
+def tf_preprocess_data(fpath, str_label2clr, input_shape = (360,640), num_classes = 4, is_training = True):
 
     # READ IMAGE
     [image,] = tf.py_function(func = get_image, 
@@ -94,7 +99,7 @@ def tf_preprocess_data(fpath, label2clr, input_shape = (360,640), num_classes = 
 
     # CREATE MASK
     seg_mask, instance_mask = tf.py_function(func  = create_masks, 
-                                              inp  = [fpath, input_shape, label2clr], 
+                                              inp  = [fpath, input_shape, str_label2clr], 
                                               Tout = [tf.uint8, tf.uint8])
   
     seg_mask.set_shape(input_shape + (1,))
