@@ -80,3 +80,29 @@ def postprocess_predictions(seg_masks, embeddings, H_matrices = None, max_num_la
     else:
         H_matrices = reshape_H(H_matrices) # (B,3,3)
         return seg_masks, instance_masks, H_matrices, total_time
+
+
+def plot_mask_on_image(mask, image = None):
+    'image: (W,H,3) [0.0, 1.0], mask: (W,H) or (W,H,1)'
+
+    instance_indices = np.unique(mask)
+
+    if np.ndim(mask) == 3: mask = mask[...,0] # (W,H,1) → (W,H)
+
+    if image is None: 
+        height, width = mask.shape[:2]
+        image_with_mask = np.zeros((height, width, 3))
+    else:
+        if tf.is_tensor(image): image = image.numpy()
+        image_with_mask = image.copy()
+        image_with_mask = (image_with_mask * 255.0).astype('uint8')
+
+    # generate 18 colors
+    clr = np.array([[255,0,0],[0,255,0],[0,0,255],[255,255,0],[0,255,255],[255,0,255]])
+    colors = np.concatenate([clr, clr * 0.7, clr * 0.4], axis = 0)
+
+    for i, index in enumerate(instance_indices):
+        if index == 0: continue # skip background (0)
+        image_with_mask[mask == index] = colors[i]
+  
+    return image_with_mask
