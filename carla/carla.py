@@ -41,7 +41,7 @@ def get_seg(fpath, input_shape = None):
 
     return seg
 
-def create_masks(fpath, input_shape, min_pixels = 40):
+def create_masks(fpath, input_shape, label2clr, min_pixels = 40):
 
     line_keys = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4', 'tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
 
