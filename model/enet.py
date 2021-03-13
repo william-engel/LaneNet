@@ -11,7 +11,7 @@ from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras import backend as K
 from tensorflow.keras.metrics import MeanIoU
 from tensorflow.keras.losses import categorical_crossentropy
-from tf.keras.regularizers import L2
+from tensorflow.keras.regularizers import L2
 
 def ENet_Encoder(input_shape = None, input_tensor = None, name = 'encoder'):
 
