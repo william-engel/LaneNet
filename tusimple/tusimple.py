@@ -7,7 +7,7 @@ tf.get_logger().setLevel('INFO')
 import numpy as np
 import json
 import cv2
-
+from PIL import Image
         
 def load_image(image_dir, label_data):
     image_dir = image_dir.numpy().decode('utf-8') # to str
