@@ -16,7 +16,7 @@ def load_image(image_dir, label_data):
     filepath =  os.path.join(image_dir, label_data['raw_file'])
     image = tf.io.read_file(filepath)
     image = tf.io.decode_jpeg(image, channels = 3)
-    image = tf.cast(image, dtype = tf.float32)
+    image = tf.cast(image, dtype = tf.uint8)
     return image
 
 def create_masks(label_data, image):
@@ -29,8 +29,8 @@ def create_masks(label_data, image):
     label_data = label_data.numpy().decode('utf-8') # to str
 
     # create empty masks
-    binary_mask   = np.zeros(shape = [im_height, im_width, 1])
-    instance_mask = np.zeros(shape = [im_height, im_width, 1])
+    binary_mask   = np.zeros(shape = [im_height, im_width, 1], dtype = 'uint8')
+    instance_mask = np.zeros(shape = [im_height, im_width, 1], dtype = 'uint8')
 
     # read json
     label_data = json.loads(label_data)
@@ -44,35 +44,67 @@ def create_masks(label_data, image):
         cv2.polylines(instance_mask, [coordinates], isClosed = False, color = [index + 1], thickness = 15)
     return binary_mask, instance_mask
 
-def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
+def random_rotate(image, binary_mask, instance_mask, min_deg = -10, max_deg = 10):
+    '''image (H,W,3) [0, 255] uint8, binary_mask (H,W,1) [0, 255] uint8, instance_mask (H,W,1) [0, 255] uint8'''
+
+    rand_angle = np.random.randint(min_deg, max_deg) # random angle
+
+    images = [image, binary_mask[...,0], instance_mask[...,0]] # (H,W,1) → (H,W)
+    images = [np.array(image) if tf.is_tensor(image) else image for image in images] # to numpy
+    images = [Image.fromarray(image).rotate(rand_angle, resample = Image.NEAREST) for image in images] # to PIL → rotate
+    images = [tf.convert_to_tensor(np.array(image)) for image in images] # to tensor
+    
+    return images[0], images[1][...,None], images[2][...,None] # (H,W) → (H,W,1)
+
+def tf_random_rotate(image, binary_mask, instance_mask, prob = 0.5):
+
+    if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
+        [image, binary_mask, instance_mask] = tf.py_function(func = random_rotate,
+                                                            inp  = [image, binary_mask, instance_mask],
+                                                            Tout = [tf.uint8, tf.uint8, tf.uint8])
+        
+        image.set_shape([None, None, 3])
+        binary_mask.set_shape([None, None, 1])
+        instance_mask.set_shape([None, None ,1])
+    
+    return image, binary_mask, instance_mask
+
+def tf_random_flip(image, binary_mask, instance_mask, prob = 0.5):
     '''image (H,W,3), binary_mask (H,W,1), instance_mask (H,W,1)'''
-    # flip left-right
+
     if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
         image = tf.image.flip_left_right(image)
         binary_mask = tf.image.flip_left_right(binary_mask)
         instance_mask = tf.image.flip_left_right(instance_mask)
+
+    return image, binary_mask, instance_mask
+
+def tf_data_augmentation(image, binary_mask, instance_mask):
   
+    image, binary_mask, instance_mask = tf_random_flip(image, binary_mask, instance_mask)
+    image, binary_mask, instance_mask = tf_random_rotate(image, binary_mask, instance_mask)
+
     return image, binary_mask, instance_mask
 
 def preprocess_data(json_label, image_dir, input_shape = (480,640), num_classes = 2, is_training = True):
     # READ IMAGE
     [image,] = tf.py_function(func = load_image, 
                               inp  = [image_dir, json_label], 
-                              Tout = [tf.float32])
+                              Tout = [tf.uint8])
 
     image.set_shape([None, None, 3])
     
     # CREATE MASK
     binary_mask, instance_mask = tf.py_function(func = create_masks, 
                                                 inp  = [json_label, image], 
-                                                Tout = [tf.int32, tf.int32])
+                                                Tout = [tf.uint8, tf.uint8])
 
     binary_mask.set_shape([None, None, 1])
     instance_mask.set_shape([None, None ,1])
     
     # DATA AUGMENTATION
     if is_training:
-        image, binary_mask, instance_mask = data_augmentation(image, binary_mask, instance_mask)
+        image, binary_mask, instance_mask = tf_data_augmentation(image, binary_mask, instance_mask)
 
     # RESIZE
     binary_mask = tf.image.resize(binary_mask, input_shape, method = 'nearest')
@@ -80,7 +112,7 @@ def preprocess_data(json_label, image_dir, input_shape = (480,640), num_classes 
     image = tf.image.resize(image, input_shape, method = 'nearest')
 
     # NORMALIZE
-    image = image / 255.0
+    image = tf.cast(image, tf.float32) / 255.0
 
     # ONE-HOT-ENCODING
     binary_mask = tf.one_hot(tf.squeeze(binary_mask, axis = -1), depth = num_classes, axis=-1)
