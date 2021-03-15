@@ -29,7 +29,7 @@ def get_seg(fpath, input_shape = None):
 
     # seg path
     if tf.is_tensor(fpath): fpath = fpath.numpy().decode('utf-8') # decode
-    seg_path = fpath.format('seg') # '.../{}/000000.png' → '.../seg/000000.png'
+    seg_path = fpath.format('instance') # '.../{}/000000.png' → '.../seg/000000.png'
 
     # load seg
     seg = mpimg.imread(seg_path)
@@ -42,22 +42,32 @@ def get_seg(fpath, input_shape = None):
 
     return seg
 
-def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40):
+def create_masks(fpath, input_shape, str_label2clr, include_beacon = False, min_pixels = 20):
 
     # string to dict
     if tf.is_tensor(str_label2clr): str_label2clr = str_label2clr.numpy().decode('utf-8') 
     label2clr = json.loads(str_label2clr)
 
-    line_keys = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4', 'tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
+    labels = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4', 'tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
+
+    clr_keys = [label2clr[label] for label in labels]
 
     seg = get_seg(fpath, input_shape)
+
+    # include beacon color tags [255, 10, 35 + x]
+    if include_beacon:
+        clrs = np.unique(np.reshape(seg, newshape = (-1,3)), axis = 0)
+
+        for clr in clrs:
+            if np.all(clr[:2] == [255,10]): clr_keys += [clr]
+
 
     instance_mask = np.zeros(input_shape)
     seg_mask = np.zeros(input_shape)
 
     # instance mask
-    for index, line_key in enumerate(line_keys):
-        instance_mask = np.where(np.all(seg == label2clr[line_key], axis = -1), np.max(instance_mask) + 1, instance_mask)
+    for index, clr_key in enumerate(clr_keys):
+        instance_mask = np.where(np.all(seg == clr_key, axis = -1), np.max(instance_mask) + 1, instance_mask)
 
     # roove instances with less then min_pixels
     for idx in np.unique(instance_mask):
