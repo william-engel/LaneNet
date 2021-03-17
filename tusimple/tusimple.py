@@ -193,11 +193,11 @@ def fit_lanes2masks(masks, labels, input_shape, original_shape, H = None, degree
             hn = pts[1] / pts[-1] # N
 
             # fit polynomial
-            c = np.polyfit(y, x, degree)
+            c = np.polyfit(yn, xn, degree)
             p = np.poly1d(c)
 
             # calculate new x coordinates
-            xn = np.polyval(p, h)
+            xn = np.polyval(p, hn)
 
             # reverse homography
             pts = np.stack([xn, hn], axis = 1) # Nx2
