@@ -40,49 +40,55 @@ def get_seg(fpath, input_shape = None):
     if input_shape is not None: 
         seg = tf.image.resize(seg, size = input_shape, method = 'nearest')
 
-    return seg
+    return np.array(seg)
 
-def create_masks(fpath, input_shape, str_label2clr, include_beacon = False, min_pixels = 20):
+def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_beacon = False):
 
     # string to dict
     if tf.is_tensor(str_label2clr): str_label2clr = str_label2clr.numpy().decode('utf-8') 
     label2clr = json.loads(str_label2clr)
 
-    labels = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4', 'tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
-
-    clr_keys = [label2clr[label] for label in labels]
-
     seg = get_seg(fpath, input_shape)
-
-    # include beacon color tags [255, 10, 35 + x]
-    if include_beacon:
-        clrs = np.unique(np.reshape(seg, newshape = (-1,3)), axis = 0)
-
-        for clr in clrs:
-            if np.all(clr[:2] == [255,10]): clr_keys += [clr]
-
 
     instance_mask = np.zeros(input_shape)
     seg_mask = np.zeros(input_shape)
 
+    ### color index by class
+    class2clr = {}
+
+    # default lines
+    def_lbls = ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4']
+    class2clr[1] = [label2clr[lbl] for lbl in def_lbls]
+
+    # temporary lines
+    tmp_lbls = ['tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4']
+    class2clr[2] = [label2clr[lbl] for lbl in tmp_lbls]
+
+    # beacon signs
+    if include_beacon:
+        beacon_clr = label2clr['chevron_sign']
+        for clr in np.unique(seg.reshape(-1,3), axis = 0):
+            if np.all(clr[:2] == beacon_clr[:2]): # [255,  10, n]
+                if 3 in class2clr:
+                  class2clr[3] += [clr]
+                else:
+                  class2clr[3] = [clr]
+
+
     # instance mask
-    for index, clr_key in enumerate(clr_keys):
-        instance_mask = np.where(np.all(seg == clr_key, axis = -1), np.max(instance_mask) + 1, instance_mask)
+    all_clrs = np.concatenate(list(class2clr.values()), axis = 0)
+    for index, clr in enumerate(all_clrs):
+        instance_mask = np.where(np.all(seg == clr, axis = -1), np.max(instance_mask) + 1, instance_mask)
 
     # roove instances with less then min_pixels
     for idx in np.unique(instance_mask):
         if len(instance_mask[instance_mask==idx]) < min_pixels:
             instance_mask[instance_mask==idx] = 0
 
-    # segmentation mask
-    classes = {1: ['def_line_1', 'def_line_2', 'def_line_3', 'def_line_4'],
-               2: ['tmp_line_1', 'tmp_line_2', 'tmp_line_3', 'tmp_line_4'],
-               3: ['chevron_sign']
-            }
 
-    for id, keys in classes.items():
-        for key in keys: 
-            seg_mask = np.where(np.all(seg == label2clr[key], axis = -1), id, seg_mask)
+    for id, clrs in class2clr.items():
+        for clr in clrs: 
+            seg_mask = np.where(np.all(seg == clr, axis = -1), id, seg_mask)
   
     seg_mask, instance_mask = tf.cast(seg_mask[...,None], tf.uint8), tf.cast(instance_mask[...,None], tf.uint8)
 
@@ -99,7 +105,7 @@ def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
   
     return image, binary_mask, instance_mask
 
-def tf_preprocess_data(fpath, str_label2clr, input_shape = (360,640), num_classes = 4, include_beacon = False, is_training = True):
+def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixels, include_beacon, is_training = True):
 
     # READ IMAGE
     [image,] = tf.py_function(func = get_image, 
@@ -109,7 +115,7 @@ def tf_preprocess_data(fpath, str_label2clr, input_shape = (360,640), num_classe
 
     # CREATE MASK
     seg_mask, instance_mask = tf.py_function(func  = create_masks, 
-                                              inp  = [fpath, input_shape, str_label2clr, include_beacon], 
+                                              inp  = [fpath, input_shape, str_label2clr, min_pixels, include_beacon], 
                                               Tout = [tf.uint8, tf.uint8])
   
     seg_mask.set_shape(input_shape + (1,))
