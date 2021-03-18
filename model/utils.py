@@ -102,7 +102,7 @@ def plot_mask_on_image(mask, image = None):
     colors = np.concatenate([clr, clr * 0.8, clr * 0.6, clr * 0.4, clr * 0.2], axis = 0)
 
     # repeat if not enough colors
-    while colors.shape[0] < instance_indices:
+    while colors.shape[0] < len(instance_indices):
         colors = np.concatenate([colors, colors], axis = 0)
 
     for i, index in enumerate(instance_indices):
