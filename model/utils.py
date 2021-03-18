@@ -97,9 +97,13 @@ def plot_mask_on_image(mask, image = None):
         image_with_mask = image.copy()
         image_with_mask = (image_with_mask * 255.0).astype('uint8')
 
-    # generate 39 colors
+    # generate 30 colors
     clr = np.array([[255,0,0],[0,255,0],[0,0,255],[255,255,0],[0,255,255],[255,0,255]])
     colors = np.concatenate([clr, clr * 0.8, clr * 0.6, clr * 0.4, clr * 0.2], axis = 0)
+
+    # repeat if not enough colors
+    while colors.shape[0] < instance_indices:
+        colors = np.concatenate([colors, colors], axis = 0)
 
     for i, index in enumerate(instance_indices):
         if index == 0: continue # skip background (0)
