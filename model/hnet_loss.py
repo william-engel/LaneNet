@@ -28,7 +28,7 @@ def tf_apply_homography(x,y, H):
     yn = tf.transpose(pts[1, :] / pts[2, :])
     xn = tf.transpose(pts[0, :] / pts[2, :])
 
-  return xn, yn
+    return xn, yn
 
 def read_str_label(str_label):
     if tf.is_tensor(str_label): str_label = str_label.numpy() # decode
