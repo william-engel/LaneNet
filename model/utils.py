@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
 
-def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixels = 15, min_bin_freq = 1, bandwidth = None):
+def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixels = 15, min_bin_freq = 1, dilation_rate = 1, bandwidth = None):
 
     B, H, W, E = embeddings.shape # (batch, height, width, embedding dim)
     time_taken = [] # stop time
@@ -19,7 +19,14 @@ def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixel
     for embedding, binary_mask in zip(embeddings, binary_masks):
         instance_mask = np.zeros([H, W], dtype=np.uint8) 
 
-        embedding = embedding[binary_mask != 0] # remove backround
+        sparse_binary_mask = binary_mask
+        sparse_matrix = np.zeros_like(binary_mask)
+        sparse_matrix[1::dilation_rate,::dilation_rate] = 1
+        sparse_matrix[::dilation_rate,1::dilation_rate] = 1
+
+        sparse_binary_mask[sparse_matrix != 1] = 0
+
+        embedding = embedding[sparse_binary_mask != 0] # remove backround
 
         if bandwidth == None:
             bandwidth = estimate_bandwidth(embedding, quantile=0.2, n_samples=100)
@@ -32,7 +39,7 @@ def create_instance_masks(embeddings, binary_masks, max_num_lanes = 5, min_pixel
             labels = ms.fit(embedding).labels_
             time_taken += [time.time() - start_time] # stop time
 
-            instance_mask[binary_mask != 0] = labels + 1
+            instance_mask[sparse_binary_mask != 0] = labels + 1
 
             # remove to small lane instances
             for id in np.unique(instance_mask):
