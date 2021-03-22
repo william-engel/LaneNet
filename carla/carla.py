@@ -88,7 +88,9 @@ def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_bea
 
     for id, clrs in class2clr.items():
         for clr in clrs: 
-            seg_mask = np.where(np.all(seg == clr, axis = -1), id, seg_mask)
+            mask = np.all(seg == clr, axis = -1)
+            if np.sum(mask) < min_pixels: continue
+            seg_mask = np.where(mask, id, seg_mask)
   
     seg_mask, instance_mask = tf.cast(seg_mask[...,None], tf.uint8), tf.cast(instance_mask[...,None], tf.uint8)
 
