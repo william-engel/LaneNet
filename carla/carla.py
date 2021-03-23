@@ -116,7 +116,7 @@ def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
   
     return image, binary_mask, instance_mask
 
-def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixels, include_beacon, is_training = True):
+def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixels, include_beacon_seg, include_beacon_instance, is_training = True):
 
     # READ IMAGE
     [image,] = tf.py_function(func = get_image, 
@@ -126,7 +126,7 @@ def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixel
 
     # CREATE MASK
     seg_mask, instance_mask = tf.py_function(func  = create_masks, 
-                                              inp  = [fpath, input_shape, str_label2clr, min_pixels, include_beacon], 
+                                              inp  = [fpath, input_shape, str_label2clr, min_pixels, include_beacon_seg, include_beacon_instance], 
                                               Tout = [tf.uint8, tf.uint8])
   
     seg_mask.set_shape(input_shape + (1,))
