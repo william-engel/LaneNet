@@ -7,6 +7,7 @@ tf.get_logger().setLevel('INFO')
 import numpy as np
 import matplotlib.image as mpimg
 import json
+from PIL import Image
 
 def get_image(fpath, input_shape = None): 
 
@@ -106,15 +107,48 @@ def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_bea
     return seg_mask, instance_mask
 
 
-def data_augmentation(image, binary_mask, instance_mask, prob = 0.5):
+def random_rotate(image, binary_mask, instance_mask, min_deg = -10, max_deg = 10):
+    '''image (H,W,3) [0, 255] uint8, binary_mask (H,W,1) [0, 255] uint8, instance_mask (H,W,1) [0, 255] uint8'''
+
+    rand_angle = np.random.randint(min_deg, max_deg) # random angle
+
+    images = [image, binary_mask[...,0], instance_mask[...,0]] # (H,W,1) → (H,W)
+    images = [np.array(image) if tf.is_tensor(image) else image for image in images] # to numpy
+    images = [Image.fromarray(image).rotate(rand_angle, resample = Image.NEAREST) for image in images] # to PIL → rotate
+    images = [tf.convert_to_tensor(np.array(image)) for image in images] # to tensor
+    
+    return images[0], images[1][...,None], images[2][...,None] # (H,W) → (H,W,1)
+
+def tf_random_rotate(image, binary_mask, instance_mask, prob = 0.5):
+
+    if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
+        [image, binary_mask, instance_mask] = tf.py_function(func = random_rotate,
+                                                            inp  = [image, binary_mask, instance_mask],
+                                                            Tout = [tf.uint8, tf.uint8, tf.uint8])
+        
+        image.set_shape([None, None, 3])
+        binary_mask.set_shape([None, None, 1])
+        instance_mask.set_shape([None, None ,1])
+    
+    return image, binary_mask, instance_mask
+
+def tf_random_flip(image, binary_mask, instance_mask, prob = 0.5):
     '''image (H,W,3), binary_mask (H,W,1), instance_mask (H,W,1)'''
-    # flip left-right
+
     if tf.random.uniform(shape = (1,), minval = 0.0, maxval = 1.0) <= prob:
         image = tf.image.flip_left_right(image)
         binary_mask = tf.image.flip_left_right(binary_mask)
         instance_mask = tf.image.flip_left_right(instance_mask)
-  
+
     return image, binary_mask, instance_mask
+
+def tf_data_augmentation(image, binary_mask, instance_mask):
+  
+    image, binary_mask, instance_mask = tf_random_flip(image, binary_mask, instance_mask)
+    image, binary_mask, instance_mask = tf_random_rotate(image, binary_mask, instance_mask)
+
+    return image, binary_mask, instance_mask
+
 
 def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixels, include_beacon_seg, include_beacon_instance, is_training = True):
 
@@ -134,7 +168,7 @@ def tf_preprocess_data(fpath, str_label2clr, input_shape, num_classes, min_pixel
 
     # DATA AUGMENTATION
     if is_training:
-        image, seg_mask, instance_mask = data_augmentation(image, seg_mask, instance_mask)
+        image, seg_mask, instance_mask = tf_data_augmentation(image, seg_mask, instance_mask)
 
     # NORMALIZE
     image = tf.cast(image, tf.float32) / 255.0
