@@ -42,7 +42,7 @@ def get_seg(fpath, input_shape = None):
 
     return np.array(seg)
 
-def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_beacon = False):
+def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_beacon_seg = False, include_beacon_instance = False):
 
     # string to dict
     if tf.is_tensor(str_label2clr): str_label2clr = str_label2clr.numpy().decode('utf-8') 
@@ -65,7 +65,7 @@ def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_bea
     class2clr[2] = [label2clr[lbl] for lbl in tmp_lbls]
 
     # beacon signs
-    if include_beacon:
+    if include_beacon_instance:
         beacon_clr = label2clr['chevron_sign']
         for clr in np.unique(seg.reshape(-1,3), axis = 0):
             if np.all(clr[:2] == beacon_clr[:2]): # [255,  10, n]
@@ -85,7 +85,16 @@ def create_masks(fpath, input_shape, str_label2clr, min_pixels = 40, include_bea
         if len(instance_mask[instance_mask==idx]) < min_pixels:
             instance_mask[instance_mask==idx] = 0
 
-
+                # beacon signs
+    if include_beacon_seg and not include_beacon_instance:
+        beacon_clr = label2clr['chevron_sign']
+        for clr in np.unique(seg.reshape(-1,3), axis = 0):
+            if np.all(clr[:2] == beacon_clr[:2]): # [255,  10, n]
+                if 3 in class2clr:
+                  class2clr[3] += [clr]
+                else:
+                  class2clr[3] = [clr]
+                
     for id, clrs in class2clr.items():
         for clr in clrs: 
             mask = np.all(seg == clr, axis = -1)
