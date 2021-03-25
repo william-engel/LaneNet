@@ -10,7 +10,7 @@ import tensorflow as tf
 tf.get_logger().setLevel('INFO')
 
 
-def LaneNet(input_shape, num_classes, embedding_dim, train_seg = True, train_instance = True, train_hnet = False):
+def LaneNet(input_shape, num_classes, embedding_dim, train_seg = True, train_instance = True, train_hnet = False, include_hnet = True):
     input = tf.keras.Input(shape = input_shape)
 
     hnet_input_shape = (64,128)
@@ -30,15 +30,19 @@ def LaneNet(input_shape, num_classes, embedding_dim, train_seg = True, train_ins
 
     ### build lanenet
     x = encoder(input)
-    h = hnet(input)
     seg_output = seg_decoder(x)
     instance_output = instance_decoder(x)
-    model = tf.keras.models.Model(inputs = [input], outputs = [seg_output, instance_output, h])
+    if include_hnet:
+        h = hnet(input)
+        outputs = [seg_output, instance_output, h]
+    else:
+        outputs = [seg_output, instance_output]
+    model = tf.keras.models.Model(inputs = [input], outputs = outputs)
 
     # rename model outputs
     model.output_names[0] = 'binary_mask'
     model.output_names[1] = 'instance_mask'
-    model.output_names[2] = 'homography'
+    if include_hnet: model.output_names[2] = 'homography'
 
     return model
 
