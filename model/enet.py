@@ -141,7 +141,7 @@ def ENet(input_shape=None, include_top=True, classifier_activation='softmax', nu
 
 
 def initial(input, name):
-  x_conv = Conv2D(filters = 13, kernel_size = (3,3), strides = (2,2), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_3x3conv')(input)
+  x_conv = Conv2D(filters = 13, kernel_size = (3,3), strides = (2,2), padding = 'same', name = name + '_3x3conv')(input)
   x_conv = BatchNormalization(name = name + '_bnorm', fused = True)(x_conv)
   x_conv = PReLU(name = name + '_prelu')(x_conv)
 
@@ -169,15 +169,15 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
     x_main = tf.pad(x_main, paddings)
 
     # SUB BRANCH
-    x = Conv2D(filters = filters_reduced, kernel_size = (2,2), strides = (2,2), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_2x2conv')(input)
+    x = Conv2D(filters = filters_reduced, kernel_size = (2,2), strides = (2,2), padding = 'same', name = name + '_2x2conv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = PReLU(name = name + '_prelu_1')(x)
 
-    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_3x3conv')(x)
+    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', name = name + '_3x3conv')(x)
     x = BatchNormalization(name = name + '_bnorm_2')(x)
     x = PReLU(name = name + '_prelu_2')(x)
 
-    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1conv')(x)
+    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1conv')(x)
     x = BatchNormalization(name = name + '_bnorm_3')(x)
     x = PReLU(name = name + '_prelu_3')(x)
 
@@ -193,20 +193,20 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
     name = name + '_up'
 
     # MAIN BRANCH
-    x_main = Conv2D(filters = filters, kernel_size = (1,1), padding = 'same', kernel_regularizer = L2(0.001),  name = name + '_main_1x1conv')(input)
+    x_main = Conv2D(filters = filters, kernel_size = (1,1), padding = 'same',  name = name + '_main_1x1conv')(input)
     x_main = BatchNormalization(name = name + '_main_bnorm')(x_main)
     x_main = MaxUnpooling2D()([x_main, idx])
 
     # SUB BRANCH
-    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1downconv')(input)
+    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1downconv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = PReLU(name = name + '_prelu_1')(x)
 
-    x = Conv2DTranspose(filters = filters_reduced, kernel_size = kernel_size, strides = (2,2), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_3x3transconv')(input)
+    x = Conv2DTranspose(filters = filters_reduced, kernel_size = kernel_size, strides = (2,2), padding = 'same', name = name + '_3x3transconv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = ReLU(name = name + '_relu_1')(x)
 
-    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1conv')(x)
+    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1conv')(x)
     x = BatchNormalization(name = name + '_bnorm_2')(x)
     x = ReLU(name = name + '_relu_2')(x)
 
@@ -222,15 +222,15 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
   elif dilated == True:
     name = name + '_dilated'
 
-    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1downconv')(input)
+    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1downconv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = PReLU(name = name + '_prelu_1')(x)
 
-    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), dilation_rate = dilation_rate, name = name + '_3x3conv')(x)
+    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', dilation_rate = dilation_rate, name = name + '_3x3conv')(x)
     x = BatchNormalization(name = name + '_bnorm_2')(x)
     x = PReLU(name = name + '_prelu_2')(x)
 
-    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1upconv')(x)
+    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1upconv')(x)
     x = BatchNormalization(name = name + '_bnorm_3')(x)
     x = PReLU(name = name + '_prelu_3')(x)
 
@@ -244,16 +244,16 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
   elif asymmetric == True:
     name = name + '_asym'
 
-    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1downconv')(input)
+    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1downconv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = PReLU(name = name + '_prelu_1')(x)
 
-    x = Conv2D(filters = filters_reduced, kernel_size = (kernel_size, 1) , strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_5x1conv')(x)
-    x = Conv2D(filters = filters_reduced, kernel_size = (1, kernel_size) , strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x5conv')(x)
+    x = Conv2D(filters = filters_reduced, kernel_size = (kernel_size, 1) , strides = (1,1), padding = 'same', name = name + '_5x1conv')(x)
+    x = Conv2D(filters = filters_reduced, kernel_size = (1, kernel_size) , strides = (1,1), padding = 'same', name = name + '_1x5conv')(x)
     x = BatchNormalization(name = name + '_bnorm_2')(x)
     x = PReLU(name = name + '_prelu_2')(x)
 
-    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1upconv')(x)
+    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1upconv')(x)
     x = BatchNormalization(name = name + '_bnorm_3')(x)
     x = PReLU(name = name + '_prelu_3')(x)
 
@@ -267,15 +267,15 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
   else:
     name = name + '_regular'
 
-    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1downconv')(input)
+    x = Conv2D(filters = filters_reduced, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1downconv')(input)
     x = BatchNormalization(name = name + '_bnorm_1')(x)
     x = PReLU(name = name + '_prelu_1')(x)
 
-    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_3x3conv')(x)
+    x = Conv2D(filters = filters_reduced, kernel_size = kernel_size, strides = (1,1), padding = 'same', name = name + '_3x3conv')(x)
     x = BatchNormalization(name = name + '_bnorm_2')(x)
     x = PReLU(name = name + '_prelu_2')(x)
 
-    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', kernel_regularizer = L2(0.001), name = name + '_1x1upconv')(x)
+    x = Conv2D(filters = filters, kernel_size = (1,1), strides = (1,1), padding = 'same', name = name + '_1x1upconv')(x)
     x = BatchNormalization(name = name + '_bnorm_3')(x)
     x = PReLU(name = name + '_prelu_3')(x)
 
